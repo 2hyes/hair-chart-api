@@ -21,8 +21,22 @@ refer to [hair-chart-db](https://github.com/2hyes/hair-chart-db)
 ### .env
 - for dev environment
     ```
-    DATABASE_URL=postgresql://{USER}:{PASSWORD}@{localhost}/hair_chart_dev
+    POSTGRES_USER=
+    POSTGRES_PASSWORD=
+    POSTGRES_DB=
     ```
 - for prod environment
     
     wip
+
+
+## run api server
+```
+uvicorn main:app --reload
+```
+
+with docker
+```
+docker compose down -v 
+docker compose up --build
+```
