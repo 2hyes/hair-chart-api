@@ -41,9 +41,9 @@ def create_shop(shop: schemas.ShopCreate, db: Session = Depends(get_db)):
     
     db_user = models.User(
         id=shop.id,
-        name=shop.name,
-        password=shop.password,
-        phone_number=shop.phone_number,
+        name=shop.user_name,
+        password=shop.user_password,
+        phone_number=shop.user_phone_number,
         user_type='shop'
     )
     db.add(db_user)
@@ -51,21 +51,21 @@ def create_shop(shop: schemas.ShopCreate, db: Session = Depends(get_db)):
 
     db_shop = models.Shop(
         id=shop.id,
-        name=shop.name,
+        name=shop.shop_name,
         number=shop.shop_number,
-        biz_number=shop.biz_number
+        biz_number=shop.shop_biz_number
     )
     db.add(db_shop)
     db.commit()
     db.refresh(db_shop)
 
     return {
-        "id": db_shop.id,
-        "name": db_shop.name,
-        "phone_number": db_user.phone_number,
+        "id": db_user.id,
+        "user_name": db_user.name,
+        "user_phone_number": db_user.phone_number,
+        "shop_name": db_shop.name,
         "shop_number": db_shop.number,
-        "biz_number": db_shop.biz_number,
-        "created_time": db_shop.created_time
+        "shop_biz_number": db_shop.biz_number
     }
 
 
@@ -91,10 +91,30 @@ def get_shop(shop_id: str, db: Session = Depends(get_db)):
     
     shop, user = result
     return {
-        "id": shop.id,
-        "name": shop.name,
-        "phone_number": user.phone_number,
+        "id": user.id,
+        "user_name": user.name,
+        "user_phone_number": user.phone_number,
+        "shop_name": shop.name,
         "shop_number": shop.number,
-        "biz_number": shop.biz_number,
-        "created_time": shop.created_time
+        "shop_biz_number": shop.biz_number
     } 
+
+# @app.post("/user-hair-profile/", response_model=schemas.UserHairProfileRead)
+# def create_user_hair_profile(profile: schemas.UserHairProfileCreate, db: Session = Depends(get_db)):
+#     db_profile = models.UserHairProfile(**profile.dict())
+#     db.add(db_profile)
+#     db.commit()
+#     db.refresh(db_profile)
+#     return db_profile
+
+# @app.get("/user-hair-profile/{user_id}", response_model=List[schemas.UserHairProfileRead])
+# def read_user_hair_profiles(user_id: str, db: Session = Depends(get_db)):
+#     profiles = db.query(models.UserHairProfile).filter(models.UserHairProfile.user_id == user_id).order_by(models.UserHairProfile.created_time.desc()).all()
+#     return profiles
+
+# @app.get("/user-hair-profile/{user_id}/latest", response_model=schemas.UserHairProfileRead)
+# def read_latest_user_hair_profile(user_id: str, db: Session = Depends(get_db)):
+#     profile = db.query(models.UserHairProfile).filter(models.UserHairProfile.user_id == user_id).order_by(models.UserHairProfile.created_time.desc()).first()
+#     if not profile:
+#         raise HTTPException(status_code=404, detail="User profile not found")
+#     return profile
