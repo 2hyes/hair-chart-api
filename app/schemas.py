@@ -6,14 +6,12 @@ class CustomerCreate(BaseModel):
     id: str
     name: str
     password: str
-    phone_number: Optional[str]
-    memo: Optional[str]
+    phone_number: str
 
 class CustomerRead(BaseModel):
     id: str
     name: str
-    phone_number: Optional[str]
-    memo: Optional[str]
+    phone_number: str
 
     class Config:
         orm_mode = True
