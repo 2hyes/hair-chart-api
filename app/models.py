@@ -10,7 +10,6 @@ class User(Base):
     name = Column(String(100), nullable=False)
     password = Column(String, nullable=False)
     phone_number = Column(String(20), unique=True, nullable=True)
-    is_active = Column(Boolean, nullable=False, server_default=text("true"))
     created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
     updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
     
