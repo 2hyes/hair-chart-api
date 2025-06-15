@@ -69,6 +69,45 @@ def create_shop(shop: schemas.ShopCreate, db: Session = Depends(get_db)):
     }
 
 
+@app.post("/designers", response_model=schemas.DesignerCreateResponse)
+def create_designer(designer: schemas.DesignerCreate, db: Session = Depends(get_db)):
+    # Check if user already exists
+    db_user = db.query(models.User).filter(models.User.id == designer.id).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="User ID already taken.")
+    
+    db_user = models.User(
+        id=designer.id,
+        name=designer.user_name,
+        password=designer.user_password,
+        phone_number=designer.user_phone_number,
+        user_type='designer'
+    )
+    db.add(db_user)
+    db.flush()
+
+    db_designer = models.Designer(
+        id=designer.id,
+        name=designer.user_name,
+        is_active=designer.is_active,
+        belonging_shop_id=designer.belonging_shop_id,
+        memo=designer.memo
+    )
+    db.add(db_designer)
+    db.commit()
+    db.refresh(db_designer)
+
+    return {
+        "id": db_user.id,
+        "user_name": db_user.name,
+        "user_phone_number": db_user.phone_number,
+        "belonging_shop_id": db_designer.belonging_shop_id,
+        "is_active": db_designer.is_active,
+        "memo": db_designer.memo
+    }
+
+
+
 @app.get("/customers/{customer_id}", response_model=schemas.CustomerRead)
 def get_customer(customer_id: str, db: Session = Depends(get_db)):
     user = db.query(models.User).\
@@ -97,6 +136,29 @@ def get_shop(shop_id: str, db: Session = Depends(get_db)):
         "shop_name": shop.name,
         "shop_number": shop.number,
         "shop_biz_number": shop.biz_number
+    } 
+
+
+@app.get("/designers/{designer_id}", response_model=schemas.DesignerRead)
+def get_designer(designer_id: str, db: Session = Depends(get_db)):
+    result = db.query(models.Designer, models.User).\
+        join(models.User, models.Designer.id == models.User.id).\
+        filter(models.Designer.id == designer_id).\
+        first()
+    
+    if result is None:
+        raise HTTPException(status_code=404, detail="Designer not found")
+    
+    designer, user = result
+    # TODO: customer_count, recent_chart_created_time 추가
+    return {
+        "id": user.id,
+        "user_name": user.name,
+        "user_phone_number": user.phone_number,
+        "belonging_shop_id": designer.belonging_shop_id,
+        "is_active": designer.is_active,
+        "created_time": designer.created_time,
+        "memo": designer.memo
     } 
 
 # @app.post("/user-hair-profile/", response_model=schemas.UserHairProfileRead)

@@ -19,12 +19,25 @@ class Shop(Base):
     __tablename__ = "shops"
 
     seq = Column(Integer, primary_key=True, index=True)
-    id = Column(String(50), ForeignKey("users.id"), nullable=False)
+    id = Column(String(50), ForeignKey("users.id"), unique=True, nullable=False)
     name = Column(String(100), nullable=False)
     number = Column(String(20), nullable=False)
     biz_number = Column(String(20), nullable=False)
     created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
     updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
+
+
+class Designer(Base):
+    __tablename__ = "designers"
+
+    seq = Column(Integer, primary_key=True, index=True)
+    id = Column(String(50), ForeignKey("users.id"), unique=True, nullable=False)
+    name = Column(String(100), nullable=False)
+    is_active = Column(Boolean, nullable=False, server_default=text("true"))
+    belonging_shop_id = Column(String(50), ForeignKey("shops.id"), unique=True, nullable=False)
+    created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
+    updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
+    memo = Column(String(4000), nullable=True)
 
 
 # class UserHairProfile(Base):

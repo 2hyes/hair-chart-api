@@ -39,6 +39,47 @@ class ShopRead(BaseModel):
     class Config:
         orm_mode = True
 
+
+class DesignerCreate(BaseModel):
+    id: str
+    user_name: str
+    user_password: str
+    user_phone_number: str
+    
+    belonging_shop_id: str
+    is_active: bool = True
+    memo: str = ""
+
+class DesignerCreateResponse(BaseModel):
+    id: str
+    user_name: str
+    user_phone_number: str
+
+    # designer info
+    belonging_shop_id: str
+    is_active: bool
+    memo: str
+
+    class Config:
+        orm_mode = True
+
+class DesignerRead(BaseModel):
+    id: str
+    user_name: str
+    user_phone_number: str
+
+    # designer info
+    belonging_shop_id: str
+    # customer_count: int
+    # recent_chart_created_time: datetime
+    is_active: bool
+    created_time: datetime
+    memo: str
+
+    class Config:
+        orm_mode = True
+
+
 # class UserHairProfileCreate(BaseModel):
 #     user_id: str
 #     face_shape: Optional[str]
