@@ -2,46 +2,104 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
-class UserCreate(BaseModel):
+class CustomerCreate(BaseModel):
     id: str
     name: str
     password: str
-    phone_number: Optional[str]
-    memo: Optional[str]
+    phone_number: str
 
-class UserRead(BaseModel):
-    seq: int
+class CustomerRead(BaseModel):
     id: str
     name: str
-    phone_number: Optional[str]
-    created_time: datetime
-    updated_time: datetime
-    memo: Optional[str]
+    phone_number: str
 
     class Config:
         orm_mode = True
 
 
-class UserHairProfileCreate(BaseModel):
-    user_id: str
-    face_shape: Optional[str]
-    head_shape: Optional[str]
-    personal_color: Optional[str]
-    hair_condition: Optional[str]
-    scalp_condition: Optional[str]
-    memo: Optional[str] = Field(default="")
+class ShopCreate(BaseModel):
+    id: str
+    user_name: str
+    user_password: str
+    user_phone_number: str
 
-class UserHairProfileRead(BaseModel):
-    seq: int
-    user_id: str
-    face_shape: Optional[str]
-    head_shape: Optional[str]
-    personal_color: Optional[str]
-    hair_condition: Optional[str]
-    scalp_condition: Optional[str]
-    created_time: datetime
-    updated_time: datetime
-    memo: Optional[str] = Field(default="")
+    shop_name: str
+    shop_number: str
+    shop_biz_number: str
+
+class ShopRead(BaseModel):
+    id: str
+    user_name: str
+    user_phone_number: str
+
+    shop_name: str
+    shop_number: str
+    shop_biz_number: str
 
     class Config:
         orm_mode = True
+
+
+class DesignerCreate(BaseModel):
+    id: str
+    user_name: str
+    user_password: str
+    user_phone_number: str
+    
+    belonging_shop_id: str
+    is_active: bool = True
+    memo: str = ""
+
+class DesignerCreateResponse(BaseModel):
+    id: str
+    user_name: str
+    user_phone_number: str
+
+    # designer info
+    belonging_shop_id: str
+    is_active: bool
+    memo: str
+
+    class Config:
+        orm_mode = True
+
+class DesignerRead(BaseModel):
+    id: str
+    user_name: str
+    user_phone_number: str
+
+    # designer info
+    belonging_shop_id: str
+    # customer_count: int
+    # recent_chart_created_time: datetime
+    is_active: bool
+    created_time: datetime
+    memo: str
+
+    class Config:
+        orm_mode = True
+
+
+# class UserHairProfileCreate(BaseModel):
+#     user_id: str
+#     face_shape: Optional[str]
+#     head_shape: Optional[str]
+#     personal_color: Optional[str]
+#     hair_condition: Optional[str]
+#     scalp_condition: Optional[str]
+#     memo: Optional[str] = Field(default="")
+
+# class UserHairProfileRead(BaseModel):
+#     seq: int
+#     user_id: str
+#     face_shape: Optional[str]
+#     head_shape: Optional[str]
+#     personal_color: Optional[str]
+#     hair_condition: Optional[str]
+#     scalp_condition: Optional[str]
+#     created_time: datetime
+#     updated_time: datetime
+#     memo: Optional[str] = Field(default="")
+
+#     class Config:
+#         orm_mode = True

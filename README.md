@@ -29,6 +29,7 @@ For production use, consider:
 ### .env
 - for dev environment
     ```
+    DATABASE_URL=
     POSTGRES_USER=
     POSTGRES_PASSWORD=
     POSTGRES_DB=
