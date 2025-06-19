@@ -180,3 +180,11 @@ def get_designer(designer_id: str, db: Session = Depends(get_db)):
 #     if not profile:
 #         raise HTTPException(status_code=404, detail="User profile not found")
 #     return profile
+
+@app.post("/chart-item-user-options/", response_model=schemas.ChartItemUserOptionRead)
+def create_chart_item_user_option(option: schemas.ChartItemUserOptionCreate, db: Session = Depends(get_db)):
+    db_option = models.ChartItemUserOption(**option.dict())
+    db.add(db_option)
+    db.commit()
+    db.refresh(db_option)
+    return db_option

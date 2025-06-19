@@ -103,3 +103,23 @@ class DesignerRead(BaseModel):
 
 #     class Config:
 #         orm_mode = True
+
+class ChartItemUserOptionCreate(BaseModel):
+    user_id: str
+    category_id: str
+    category_name: str
+    option_name: str
+    image_source: Optional[str] = None
+
+class ChartItemUserOptionRead(BaseModel):
+    id: int
+    user_id: str
+    category_id: str
+    category_name: str
+    option_name: str
+    image_source: Optional[str]
+    created_time: datetime
+    updated_time: datetime
+
+    class Config:
+        orm_mode = True
