@@ -181,10 +181,91 @@ def get_designer(designer_id: str, db: Session = Depends(get_db)):
 #         raise HTTPException(status_code=404, detail="User profile not found")
 #     return profile
 
-@app.post("/chart-item-user-options/", response_model=schemas.ChartItemUserOptionRead)
-def create_chart_item_user_option(option: schemas.ChartItemUserOptionCreate, db: Session = Depends(get_db)):
+@app.post("/chart-item-user-options/", response_model=schemas.ChartItemUserOption)
+def create_chart_item_user_option(option: schemas.ChartItemUserOption, db: Session = Depends(get_db)):
     db_option = models.ChartItemUserOption(**option.dict())
     db.add(db_option)
     db.commit()
     db.refresh(db_option)
     return db_option
+
+@app.get("/chart-item-user-options/user/{user_id}", response_model=List[schemas.ChartItemOptionMerged])
+def get_chart_item_options_by_user(user_id: str, db: Session = Depends(get_db)):
+    user_options = db.query(models.ChartItemUserOption).filter(models.ChartItemUserOption.user_id == user_id).all()
+    user_category_ids = {option.category_id for option in user_options}
+
+    default_options = db.query(models.ChartItemDefaultOption).filter(
+        models.ChartItemDefaultOption.category_id.in_(user_category_ids)
+    ).all()
+    user_option_names = {option.option_name for option in user_options}
+    
+    merged_options = []
+    for user_option in user_options:
+        merged_options.append(schemas.ChartItemOptionMerged(
+            user_id=user_option.user_id,
+            category_id=user_option.category_id,
+            category_name=user_option.category_name,
+            option_name=user_option.option_name,
+            image_source=user_option.image_source,
+            is_user_option=True
+        ))
+    
+    for default_option in default_options:
+        if default_option.option_name not in user_option_names:
+            merged_options.append(schemas.ChartItemOptionMerged(
+                user_id=None,
+                category_id=default_option.category_id,
+                category_name=default_option.category_name,
+                option_name=default_option.option_name,
+                image_source=default_option.image_source,
+                is_user_option=False
+            ))
+    
+    return merged_options
+
+@app.delete("/chart-item-user-options/")
+def delete_chart_item_user_option(
+    user_id: str,
+    category_id: str, 
+    option_name: str, 
+    db: Session = Depends(get_db)):
+    db_option = db.query(models.ChartItemUserOption).filter(
+        models.ChartItemUserOption.user_id == user_id,
+        models.ChartItemUserOption.category_id == category_id,
+        models.ChartItemUserOption.option_name == option_name
+    ).first()
+    
+    if not db_option:
+        raise HTTPException(status_code=404, detail="Chart item user option not found")
+    
+    db.delete(db_option)
+    db.commit()
+    
+    return {"message": "Chart item user option deleted successfully"}
+
+# @app.put("/chart-item-user-options/")
+# def update_chart_item_user_option(
+#     user_id: str, 
+#     category_id: str, 
+#     option_name: str, 
+#     option_update: schemas.ChartItemUserOption, 
+#     db: Session = Depends(get_db)
+# ):
+#     db_option = db.query(models.ChartItemUserOption).filter(
+#         models.ChartItemUserOption.user_id == user_id,
+#         models.ChartItemUserOption.category_id == category_id,
+#         models.ChartItemUserOption.option_name == option_name
+#     ).first()
+    
+#     if not db_option:
+#         raise HTTPException(status_code=404, detail="Chart item user option not found")
+    
+#     update_data = option_update.dict(exclude_unset=True)
+#     for field, value in update_data.items():
+#         setattr(db_option, field, value)
+    
+#     db.commit()
+#     db.refresh(db_option)
+    
+#     return {"message": "Chart item user option updated successfully"}
+

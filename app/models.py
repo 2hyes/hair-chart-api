@@ -52,8 +52,16 @@ class Designer(Base):
 #     created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
 #     updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
 #     memo = Column(String)
-from sqlalchemy import Column, Integer, String, TIMESTAMP, text, ForeignKey
-from .database import Base
+
+class ChartItemDefaultOption(Base):
+    __tablename__ = "chart_item_default_options"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(String(50), nullable=False)
+    category_name = Column(String(50), nullable=False)
+    option_name = Column(String(100), nullable=False)
+    image_source = Column(String(500), nullable=True)
+
 
 class ChartItemUserOption(Base):
     __tablename__ = "chart_item_user_options"
@@ -66,4 +74,3 @@ class ChartItemUserOption(Base):
     image_source = Column(String(500), nullable=True)
     created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
     updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
-    

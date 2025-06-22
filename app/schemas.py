@@ -104,22 +104,32 @@ class DesignerRead(BaseModel):
 #     class Config:
 #         orm_mode = True
 
-class ChartItemUserOptionCreate(BaseModel):
+class ChartItemUserOption(BaseModel):
     user_id: str
     category_id: str
     category_name: str
     option_name: str
     image_source: Optional[str] = None
 
-class ChartItemUserOptionRead(BaseModel):
-    id: int
-    user_id: str
+    class Config:
+        orm_mode = True
+
+class ChartItemDefaultOption(BaseModel):
     category_id: str
     category_name: str
     option_name: str
     image_source: Optional[str]
-    created_time: datetime
-    updated_time: datetime
+
+    class Config:
+        orm_mode = True
+
+class ChartItemOptionMerged(BaseModel):
+    user_id: Optional[str]
+    category_id: str
+    category_name: str
+    option_name: str
+    image_source: Optional[str]
+    is_user_option: bool = False  # True for user options, False for default options
 
     class Config:
         orm_mode = True
