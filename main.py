@@ -181,7 +181,7 @@ def get_designer(designer_id: str, db: Session = Depends(get_db)):
 #         raise HTTPException(status_code=404, detail="User profile not found")
 #     return profile
 
-@app.post("/chart-item-user-options/", response_model=schemas.ChartItemUserOption)
+@app.post("/chart-item-user-options/", response_model=schemas.ChartItemUserOptionRead)
 def create_chart_item_user_option(option: schemas.ChartItemUserOption, db: Session = Depends(get_db)):
     existing = db.query(models.ChartItemUserOption).filter_by(
         user_id=option.user_id,
@@ -191,11 +191,54 @@ def create_chart_item_user_option(option: schemas.ChartItemUserOption, db: Sessi
     if existing:
         raise HTTPException(status_code=400, detail="중복된 옵션명입니다.")
 
-    db_option = models.ChartItemUserOption(**option.dict())
+    sequence = db.query(models.UserCategorySequence).filter_by(
+        user_id=option.user_id,
+        category_id=option.category_id
+    ).first()
+    
+    if sequence:
+        sequence.current_seq += 1
+        db.add(sequence)
+    else:
+        sequence = models.UserCategorySequence(
+            user_id=option.user_id,
+            category_id=option.category_id,
+            current_seq=1
+        )
+        db.add(sequence)
+    
+    db.flush()
+
+    option_id = f"{option.user_id}_{option.category_id}_{sequence.current_seq}"
+    
+    db_option = models.ChartItemUserOption(
+        id=option_id,
+        user_id=option.user_id,
+        category_id=option.category_id,
+        category_name=option.category_name,
+        option_name=option.option_name,
+        image_source=option.image_source
+    )
     db.add(db_option)
+    try:
+        db.flush()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"DB insert error: {str(e)}")
+
     db.commit()
-    db.refresh(db_option)
-    return db_option
+
+    # 실제로 저장된 row를 user_id, category_id, option_name으로 쿼리
+    created_option = db.query(models.ChartItemUserOption).filter_by(
+        user_id=option.user_id,
+        category_id=option.category_id,
+        option_name=option.option_name
+    ).order_by(models.ChartItemUserOption.created_time.desc()).first()
+
+    if not created_option:
+        raise HTTPException(status_code=500, detail="등록 후 옵션을 찾을 수 없습니다.")
+
+    return created_option
 
 @app.get("/chart-item-user-options/user/{user_id}", response_model=List[schemas.ChartItemOptionMerged])
 def get_chart_item_options_by_user(user_id: str, db: Session = Depends(get_db)):
@@ -242,6 +285,8 @@ def is_chart_item_user_option_in_use(user_id: str, category_id: str, option_name
             models.Chart.option_name == option_name
         ).first() is not None
         return {"in_use": in_use}
+    except HTTPException:
+        raise
     except:
         # Chart 테이블이 없으면 임시로 False 반환
         return {"in_use": False}

@@ -114,6 +114,19 @@ class ChartItemUserOption(BaseModel):
     class Config:
         orm_mode = True
 
+class ChartItemUserOptionRead(BaseModel):
+    id: str
+    user_id: str
+    category_id: str
+    category_name: str
+    option_name: str
+    image_source: Optional[str] = None
+    created_time: datetime
+    updated_time: datetime
+
+    class Config:
+        orm_mode = True
+
 class ChartItemDefaultOption(BaseModel):
     category_id: str
     category_name: str

@@ -49,10 +49,18 @@ class ChartItemDefaultOption(Base):
     image_source = Column(String(500), nullable=True)
 
 
+class UserCategorySequence(Base):
+    __tablename__ = "user_category_sequence"
+
+    user_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    category_id = Column(String(50), primary_key=True)
+    current_seq = Column(Integer, nullable=False, server_default=text("0"))
+
+
 class ChartItemUserOption(Base):
     __tablename__ = "chart_item_user_options"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(100), primary_key=True, index=True, nullable=True, autoincrement=False)
     user_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     category_id = Column(String(50), nullable=False)
     category_name = Column(String(50), nullable=False)
