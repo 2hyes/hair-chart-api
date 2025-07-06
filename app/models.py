@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, TIMESTAMP, text, ForeignKey, Boolean, UniqueConstraint
 from .database import Base
 
 class User(Base):
@@ -39,20 +39,6 @@ class Designer(Base):
     memo = Column(String(4000), nullable=True)
 
 
-# class UserHairProfile(Base):
-#     __tablename__ = "user_hair_profile"
-
-#     seq = Column(Integer, primary_key=True, index=True)
-#     user_id = Column(String(50), ForeignKey("users.id"), nullable=False)
-#     face_shape = Column(String)
-#     head_shape = Column(String)
-#     personal_color = Column(String)
-#     hair_condition = Column(String)
-#     scalp_condition = Column(String)
-#     created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
-#     updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
-#     memo = Column(String)
-
 class ChartItemDefaultOption(Base):
     __tablename__ = "chart_item_default_options"
 
@@ -70,7 +56,11 @@ class ChartItemUserOption(Base):
     user_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     category_id = Column(String(50), nullable=False)
     category_name = Column(String(50), nullable=False)
-    option_name = Column(String(100), unique=True, nullable=False)
+    option_name = Column(String(100), nullable=False)
     image_source = Column(String(500), nullable=True)
     created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
     updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('user_id', 'category_id', 'option_name', name='uq_user_category_option'),
+    )

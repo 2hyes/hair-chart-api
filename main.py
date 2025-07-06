@@ -183,6 +183,14 @@ def get_designer(designer_id: str, db: Session = Depends(get_db)):
 
 @app.post("/chart-item-user-options/", response_model=schemas.ChartItemUserOption)
 def create_chart_item_user_option(option: schemas.ChartItemUserOption, db: Session = Depends(get_db)):
+    existing = db.query(models.ChartItemUserOption).filter_by(
+        user_id=option.user_id,
+        category_id=option.category_id,
+        option_name=option.option_name
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="중복된 옵션명입니다.")
+
     db_option = models.ChartItemUserOption(**option.dict())
     db.add(db_option)
     db.commit()
