@@ -231,6 +231,21 @@ def get_chart_item_options_by_user(user_id: str, db: Session = Depends(get_db)):
     
     return merged_options
 
+@app.get("/chart-item-user-options/in-use/")
+def is_chart_item_user_option_in_use(user_id: str, category_id: str, option_name: str, db: Session = Depends(get_db)):
+    # TODO: Chart 테이블이 생성되면 실제 사용 여부 확인 로직으로 변경
+    # 현재는 임시로 False 반환 (차트 테이블이 없으므로)
+    try:
+        in_use = db.query(models.Chart).filter(
+            models.Chart.user_id == user_id,
+            models.Chart.category_id == category_id,
+            models.Chart.option_name == option_name
+        ).first() is not None
+        return {"in_use": in_use}
+    except:
+        # Chart 테이블이 없으면 임시로 False 반환
+        return {"in_use": False}
+
 @app.delete("/chart-item-user-options/")
 def delete_chart_item_user_option(
     user_id: str,
