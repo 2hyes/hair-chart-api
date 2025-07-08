@@ -8,7 +8,7 @@ class User(Base):
     id = Column(String(50), unique=True, nullable=False)
     user_type = Column(String(10), nullable=False)
     name = Column(String(100), nullable=False)
-    password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=False)
     phone_number = Column(String(20), unique=True, nullable=True)
     created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
     updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)

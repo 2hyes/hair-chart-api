@@ -4,14 +4,14 @@ from datetime import datetime
 
 class CustomerCreate(BaseModel):
     id: str
-    name: str
-    password: str
-    phone_number: str
+    user_name: str
+    user_password: str
+    user_phone_number: str
 
 class CustomerRead(BaseModel):
     id: str
-    name: str
-    phone_number: str
+    user_name: str
+    user_phone_number: str
 
     class Config:
         orm_mode = True

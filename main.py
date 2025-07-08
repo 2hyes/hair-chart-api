@@ -1,8 +1,11 @@
 from typing import List
 
+from app import models, schemas, database
+
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app import models, schemas, database
+from passlib.hash import bcrypt
+# from jose import jwt
 
 app = FastAPI()
 
@@ -24,13 +27,23 @@ def create_customer(customer: schemas.CustomerCreate, db: Session = Depends(get_
     if existing_user:
         raise HTTPException(status_code=400, detail="User ID is already taken.")
     
-    db_user = models.User(**customer.model_dump(), 
-                          user_type="customer")
+    hashed_pw = bcrypt.hash(customer.user_password)
+    db_user = models.User(
+        id=customer.id,
+        name=customer.user_name,
+        hashed_password=hashed_pw, 
+        phone_number=customer.user_phone_number,
+        user_type='customer'
+    )
 
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return db_user
+    return {
+        "id": db_user.id,
+        "user_name": db_user.name,
+        "user_phone_number": db_user.phone_number
+    }
 
 @app.post("/shops", response_model=schemas.ShopRead)
 def create_shop(shop: schemas.ShopCreate, db: Session = Depends(get_db)):
@@ -39,10 +52,11 @@ def create_shop(shop: schemas.ShopCreate, db: Session = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail="User ID already taken.")
     
+    hashed_pw = bcrypt.hash(shop.user_password)
     db_user = models.User(
         id=shop.id,
         name=shop.user_name,
-        password=shop.user_password,
+        hashed_password=hashed_pw, 
         phone_number=shop.user_phone_number,
         user_type='shop'
     )
@@ -68,7 +82,6 @@ def create_shop(shop: schemas.ShopCreate, db: Session = Depends(get_db)):
         "shop_biz_number": db_shop.biz_number
     }
 
-
 @app.post("/designers", response_model=schemas.DesignerCreateResponse)
 def create_designer(designer: schemas.DesignerCreate, db: Session = Depends(get_db)):
     # Check if user already exists
@@ -76,10 +89,11 @@ def create_designer(designer: schemas.DesignerCreate, db: Session = Depends(get_
     if db_user:
         raise HTTPException(status_code=400, detail="User ID already taken.")
     
+    hashed_pw = bcrypt.hash(designer.user_password)
     db_user = models.User(
         id=designer.id,
         name=designer.user_name,
-        password=designer.user_password,
+        hashed_password=hashed_pw,
         phone_number=designer.user_phone_number,
         user_type='designer'
     )
@@ -105,7 +119,6 @@ def create_designer(designer: schemas.DesignerCreate, db: Session = Depends(get_
         "is_active": db_designer.is_active,
         "memo": db_designer.memo
     }
-
 
 
 @app.get("/customers/{customer_id}", response_model=schemas.CustomerRead)
@@ -347,10 +360,11 @@ def delete_chart_item_user_option(
 @app.post("/login")
 def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == request.id).first()
-    if not user or user.password != request.password:
+    if not user or not bcrypt.verify(request.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
-
-    return {"message": "로그인 성공", 
-            "user_type": user.user_type, 
-            "user_id": user.id}
+    return {
+        "message": "로그인 성공",
+        "user_type": user.user_type,
+        "user_id": user.id
+    }
 
