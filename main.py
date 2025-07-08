@@ -161,6 +161,13 @@ def get_designer(designer_id: str, db: Session = Depends(get_db)):
         "memo": designer.memo
     } 
 
+
+@app.get("/users/check-id")
+def check_user_id(id: str, db: Session = Depends(get_db)):
+    exists = db.query(models.User).filter(models.User.id == id).first() is not None
+    return {"exists": exists}
+
+
 # @app.post("/user-hair-profile/", response_model=schemas.UserHairProfileRead)
 # def create_user_hair_profile(profile: schemas.UserHairProfileCreate, db: Session = Depends(get_db)):
 #     db_profile = models.UserHairProfile(**profile.dict())
