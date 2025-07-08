@@ -357,6 +357,7 @@ def delete_chart_item_user_option(
     
 #     return {"message": "Chart item user option updated successfully"}
 
+# TODO: 토큰 발급 로직 추가
 @app.post("/login")
 def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == request.id).first()
