@@ -79,6 +79,9 @@ class DesignerRead(BaseModel):
     class Config:
         orm_mode = True
 
+class LoginRequest(BaseModel):
+    id: str
+    password: str
 
 # class UserHairProfileCreate(BaseModel):
 #     user_id: str

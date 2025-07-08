@@ -344,3 +344,13 @@ def delete_chart_item_user_option(
     
 #     return {"message": "Chart item user option updated successfully"}
 
+@app.post("/login")
+def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == request.id).first()
+    if not user or user.password != request.password:
+        raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
+
+    return {"message": "로그인 성공", 
+            "user_type": user.user_type, 
+            "user_id": user.id}
+
