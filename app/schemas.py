@@ -46,9 +46,8 @@ class DesignerCreate(BaseModel):
     user_password: str
     user_phone_number: str
     
-    belonging_shop_id: str
-    is_active: bool = True
-    memo: str = ""
+    belonging_shop_id: Optional[str] = None
+    memo:  Optional[str] = None
 
 class DesignerCreateResponse(BaseModel):
     id: str
@@ -56,9 +55,9 @@ class DesignerCreateResponse(BaseModel):
     user_phone_number: str
 
     # designer info
-    belonging_shop_id: str
+    belonging_shop_id: Optional[str] = None
     is_active: bool
-    memo: str
+    memo:  Optional[str] = None
 
     class Config:
         orm_mode = True

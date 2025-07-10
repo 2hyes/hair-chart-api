@@ -103,7 +103,6 @@ def create_designer(designer: schemas.DesignerCreate, db: Session = Depends(get_
     db_designer = models.Designer(
         id=designer.id,
         name=designer.user_name,
-        is_active=designer.is_active,
         belonging_shop_id=designer.belonging_shop_id,
         memo=designer.memo
     )
@@ -366,6 +365,7 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     return {
         "message": "로그인 성공",
         "user_type": user.user_type,
-        "user_id": user.id
+        "user_id": user.id,
+        "user_name": user.name
     }
 
