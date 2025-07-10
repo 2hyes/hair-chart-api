@@ -1,8 +1,8 @@
-from typing import List
+from typing import List, Optional
 
 from app import models, schemas, database
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from passlib.hash import bcrypt
 # from jose import jwt
@@ -288,6 +288,36 @@ def get_chart_item_options_by_user(user_id: str, db: Session = Depends(get_db)):
 
     return merged_options
 
+@app.get("/chart-item-user-options/user/{user_id}/category/{category_id}", response_model=List[schemas.ChartItemOptionMerged])
+def get_chart_item_options_by_user_and_category(user_id: str, category_id: str, db: Session = Depends(get_db)):
+    user_options = db.query(models.ChartItemUserOption).filter(
+        models.ChartItemUserOption.user_id == user_id,
+        models.ChartItemUserOption.category_id == category_id
+    ).all()
+    user_option_names = {option.option_name for option in user_options}
+    default_options = db.query(models.ChartItemDefaultOption).filter(
+        models.ChartItemDefaultOption.category_id == category_id
+    ).all()
+    merged_options = []
+    for user_option in user_options:
+        merged_options.append(schemas.ChartItemOptionMerged(
+            category_id=user_option.category_id,
+            category_name=user_option.category_name,
+            option_name=user_option.option_name,
+            image_source=user_option.image_source,
+            is_user_option=True
+        ))
+    for default_option in default_options:
+        if default_option.option_name not in user_option_names:
+            merged_options.append(schemas.ChartItemOptionMerged(
+                category_id=default_option.category_id,
+                category_name=default_option.category_name,
+                option_name=default_option.option_name,
+                image_source=default_option.image_source,
+                is_user_option=False
+            ))
+    return merged_options
+
 @app.get("/chart-item-user-options/in-use/")
 def is_chart_item_user_option_in_use(user_id: str, category_id: str, option_name: str, db: Session = Depends(get_db)):
     # TODO: Chart 테이블이 생성되면 실제 사용 여부 확인 로직으로 변경
@@ -367,4 +397,59 @@ def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
         "user_name": user.name,
         "user_type": user.user_type
     }
+
+@app.patch("/users/{user_id}")
+def update_user_info(user_id: str, data: dict = Body(...), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.user_type == "shop":
+        # Shop: allow all fields except id
+        updatable_fields = ["name", "phone_number"]
+        for field in updatable_fields:
+            if field in data:
+                setattr(user, field, data[field])
+        # Shop info (shop_name, shop_number, shop_biz_number) in Shop table
+        shop = db.query(models.Shop).filter(models.Shop.id == user_id).first()
+        if shop:
+            shop_fields = ["shop_name", "shop_number", "shop_biz_number"]
+            for field in shop_fields:
+                if field in data:
+                    setattr(shop, field.replace("shop_", ""), data[field])
+        db.commit()
+        return {"message": "Shop user info updated successfully"}
+    elif user.user_type == "designer":
+        # Designer: only name, phone_number
+        allowed = False
+        if "name" in data:
+            user.name = data["name"]
+            # Also update Designer table name
+            designer = db.query(models.Designer).filter(models.Designer.id == user_id).first()
+            if designer:
+                designer.name = data["name"]
+            allowed = True
+        if "phone_number" in data:
+            user.phone_number = data["phone_number"]
+            allowed = True
+        if not allowed:
+            raise HTTPException(status_code=400, detail="Only name and phone_number can be updated for designer.")
+        db.commit()
+        return {"message": "Designer user info updated successfully"}
+    elif user.user_type == "customer":
+        # Customer: allow all fields except id
+        updatable_fields = ["name", "phone_number"]
+        updated = False
+        for field in updatable_fields:
+            if field in data:
+                setattr(user, field, data[field])
+                updated = True
+        if "password" in data:
+            user.hashed_password = bcrypt.hash(data["password"])
+            updated = True
+        if not updated:
+            raise HTTPException(status_code=400, detail="No updatable fields provided for customer.")
+        db.commit()
+        return {"message": "Customer user info updated successfully"}
+    else:
+        raise HTTPException(status_code=400, detail="User type not supported for update.")
 
