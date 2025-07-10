@@ -360,12 +360,16 @@ def delete_chart_item_user_option(
 @app.post("/login")
 def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == request.id).first()
-    if not user or not bcrypt.verify(request.password, user.hashed_password):
+    if not user:
+        raise HTTPException(status_code=401, detail="존재하지 않는 계정입니다.")
+    if user.user_type != request.user_type:
+        raise HTTPException(status_code=403, detail="해당 타입으로 가입된 아이디가 아닙니다.")
+    if not bcrypt.verify(request.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
     return {
         "message": "로그인 성공",
-        "user_type": user.user_type,
         "user_id": user.id,
-        "user_name": user.name
+        "user_name": user.name,
+        "user_type": user.user_type
     }
 

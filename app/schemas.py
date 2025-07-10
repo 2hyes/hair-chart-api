@@ -81,6 +81,7 @@ class DesignerRead(BaseModel):
 class LoginRequest(BaseModel):
     id: str
     password: str
+    user_type: str
 
 # class UserHairProfileCreate(BaseModel):
 #     user_id: str
