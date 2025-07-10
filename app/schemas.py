@@ -140,7 +140,6 @@ class ChartItemDefaultOption(BaseModel):
         orm_mode = True
 
 class ChartItemOptionMerged(BaseModel):
-    user_id: Optional[str]
     category_id: str
     category_name: str
     option_name: str

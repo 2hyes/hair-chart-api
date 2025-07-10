@@ -262,35 +262,30 @@ def create_chart_item_user_option(option: schemas.ChartItemUserOption, db: Sessi
 @app.get("/chart-item-user-options/user/{user_id}", response_model=List[schemas.ChartItemOptionMerged])
 def get_chart_item_options_by_user(user_id: str, db: Session = Depends(get_db)):
     user_options = db.query(models.ChartItemUserOption).filter(models.ChartItemUserOption.user_id == user_id).all()
-    user_category_ids = {option.category_id for option in user_options}
-
-    default_options = db.query(models.ChartItemDefaultOption).filter(
-        models.ChartItemDefaultOption.category_id.in_(user_category_ids)
-    ).all()
     user_option_names = {option.option_name for option in user_options}
-    
+
+    default_options = db.query(models.ChartItemDefaultOption).all()
+
     merged_options = []
     for user_option in user_options:
         merged_options.append(schemas.ChartItemOptionMerged(
-            user_id=user_option.user_id,
             category_id=user_option.category_id,
             category_name=user_option.category_name,
             option_name=user_option.option_name,
             image_source=user_option.image_source,
             is_user_option=True
         ))
-    
+
     for default_option in default_options:
         if default_option.option_name not in user_option_names:
             merged_options.append(schemas.ChartItemOptionMerged(
-                user_id=None,
                 category_id=default_option.category_id,
                 category_name=default_option.category_name,
                 option_name=default_option.option_name,
                 image_source=default_option.image_source,
                 is_user_option=False
             ))
-    
+
     return merged_options
 
 @app.get("/chart-item-user-options/in-use/")
