@@ -190,58 +190,44 @@ def check_user_id(id: str, db: Session = Depends(get_db)):
     exists = db.query(models.User).filter(models.User.id == id).first() is not None
     return {"exists": exists}
 
-@app.get("/customers/{customer_id}", response_model=schemas.CustomerRead)
-def get_customer(customer_id: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).\
-        filter(models.User.id == customer_id).\
-        filter(models.User.user_type == "customer").\
-        first()
+@app.get("/users/{user_id}")
+def get_user(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-@app.get("/shops/{shop_id}", response_model=schemas.ShopRead)
-def get_shop(shop_id: str, db: Session = Depends(get_db)):
-    result = db.query(models.Shop, models.User).\
-        join(models.User, models.Shop.id == models.User.id).\
-        filter(models.Shop.id == shop_id).\
-        first()
-    
-    if result is None:
-        raise HTTPException(status_code=404, detail="Shop not found")
-    
-    shop, user = result
-    return {
-        "id": user.id,
-        "user_name": user.name,
-        "user_phone_number": user.phone_number,
-        "shop_name": shop.name,
-        "shop_number": shop.number,
-        "shop_biz_number": shop.biz_number
-    } 
-
-
-@app.get("/designers/{designer_id}", response_model=schemas.DesignerRead)
-def get_designer(designer_id: str, db: Session = Depends(get_db)):
-    result = db.query(models.Designer, models.User).\
-        join(models.User, models.Designer.id == models.User.id).\
-        filter(models.Designer.id == designer_id).\
-        first()
-    
-    if result is None:
-        raise HTTPException(status_code=404, detail="Designer not found")
-    
-    designer, user = result
-    # TODO: customer_count, recent_chart_created_time 추가
-    return {
-        "id": user.id,
-        "user_name": user.name,
-        "user_phone_number": user.phone_number,
-        "belonging_shop_id": designer.belonging_shop_id,
-        "is_active": designer.is_active,
-        "created_time": designer.created_time,
-        "memo": designer.memo
-    } 
+    if user.user_type == "customer":
+        return {
+            "id": user.id,
+            "user_name": user.name,
+            "user_phone_number": user.phone_number
+        }
+    elif user.user_type == "shop":
+        shop = db.query(models.Shop).filter(models.Shop.id == user_id).first()
+        if not shop:
+            raise HTTPException(status_code=404, detail="Shop not found")
+        return {
+            "id": user.id,
+            "user_name": user.name,
+            "user_phone_number": user.phone_number,
+            "shop_name": shop.name,
+            "shop_number": shop.number,
+            "shop_biz_number": shop.biz_number
+        }
+    elif user.user_type == "designer":
+        designer = db.query(models.Designer).filter(models.Designer.id == user_id).first()
+        if not designer:
+            raise HTTPException(status_code=404, detail="Designer not found")
+        return {
+            "id": user.id,
+            "user_name": user.name,
+            "user_phone_number": user.phone_number,
+            "belonging_shop_id": designer.belonging_shop_id,
+            "is_active": designer.is_active,
+            "created_time": designer.created_time,
+            "memo": designer.memo
+        }
+    else:
+        raise HTTPException(status_code=400, detail="Unknown user type")
 
 # @app.post("/user-hair-profile/", response_model=schemas.UserHairProfileRead)
 # def create_user_hair_profile(profile: schemas.UserHairProfileCreate, db: Session = Depends(get_db)):
