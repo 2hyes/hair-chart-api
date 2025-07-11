@@ -21,104 +21,157 @@ def get_db():
 # TODO: password encryption
 # TODO: refactor whole main.py
 
-@app.post("/customers", response_model=schemas.CustomerRead)
-def create_customer(customer: schemas.CustomerCreate, db: Session = Depends(get_db)):
-    existing_user = db.query(models.User).filter(models.User.id == customer.id).first()
+@app.post("/users/signup")
+def signin(data: dict = Body(...), db: Session = Depends(get_db)):
+    user_type = data.get("user_type")
+    if user_type not in ["customer", "shop", "designer"]:
+        raise HTTPException(status_code=400, detail="Invalid user_type.")
+    
+    # Validate duplicate IDs
+    existing_user = db.query(models.User).filter(models.User.id == data["id"]).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="User ID is already taken.")
+
+    existing_phone = db.query(models.User).filter(models.User.phone_number == data["user_phone_number"]).first()
+    if existing_phone:
+        raise HTTPException(status_code=400, detail="이미 가입된 전화번호입니다.")
     
-    hashed_pw = bcrypt.hash(customer.user_password)
+    # Hash password
+    hashed_pw = bcrypt.hash(data["user_password"])
+
     db_user = models.User(
-        id=customer.id,
-        name=customer.user_name,
-        hashed_password=hashed_pw, 
-        phone_number=customer.user_phone_number,
-        user_type='customer'
-    )
-
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return {
-        "id": db_user.id,
-        "user_name": db_user.name,
-        "user_phone_number": db_user.phone_number
-    }
-
-@app.post("/shops", response_model=schemas.ShopRead)
-def create_shop(shop: schemas.ShopCreate, db: Session = Depends(get_db)):
-    # Check if user already exists
-    db_user = db.query(models.User).filter(models.User.id == shop.id).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="User ID already taken.")
-    
-    hashed_pw = bcrypt.hash(shop.user_password)
-    db_user = models.User(
-        id=shop.id,
-        name=shop.user_name,
-        hashed_password=hashed_pw, 
-        phone_number=shop.user_phone_number,
-        user_type='shop'
-    )
-    db.add(db_user)
-    db.flush()
-
-    db_shop = models.Shop(
-        id=shop.id,
-        name=shop.shop_name,
-        number=shop.shop_number,
-        biz_number=shop.shop_biz_number
-    )
-    db.add(db_shop)
-    db.commit()
-    db.refresh(db_shop)
-
-    return {
-        "id": db_user.id,
-        "user_name": db_user.name,
-        "user_phone_number": db_user.phone_number,
-        "shop_name": db_shop.name,
-        "shop_number": db_shop.number,
-        "shop_biz_number": db_shop.biz_number
-    }
-
-@app.post("/designers", response_model=schemas.DesignerCreateResponse)
-def create_designer(designer: schemas.DesignerCreate, db: Session = Depends(get_db)):
-    # Check if user already exists
-    db_user = db.query(models.User).filter(models.User.id == designer.id).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="User ID already taken.")
-    
-    hashed_pw = bcrypt.hash(designer.user_password)
-    db_user = models.User(
-        id=designer.id,
-        name=designer.user_name,
+        id=data["id"],
+        name=data["user_name"],
         hashed_password=hashed_pw,
-        phone_number=designer.user_phone_number,
-        user_type='designer'
+        phone_number=data["user_phone_number"],
+        user_type=user_type
     )
     db.add(db_user)
     db.flush()
 
-    db_designer = models.Designer(
-        id=designer.id,
-        name=designer.user_name,
-        belonging_shop_id=designer.belonging_shop_id,
-        memo=designer.memo
-    )
-    db.add(db_designer)
-    db.commit()
-    db.refresh(db_designer)
+    if user_type == "customer":
+        db.commit()
+        db.refresh(db_user)
+        return {
+            "id": db_user.id,
+            "user_name": db_user.name,
+            "user_phone_number": db_user.phone_number
+        }
+    
+    elif user_type == "shop":
+        db_shop = models.Shop(
+            id=data["id"],
+            name=data["shop_name"],
+            number=data["shop_number"],
+            biz_number=data["shop_biz_number"]
+        )
+        db.add(db_shop)
+        db.commit()
+        db.refresh(db_shop)
+        return {
+            "id": db_user.id,
+            "user_name": db_user.name,
+            "user_phone_number": db_user.phone_number,
+            "shop_name": db_shop.name,
+            "shop_number": db_shop.number,
+            "shop_biz_number": db_shop.biz_number
+        }
+    
+    elif user_type == "designer":
+        db_designer = models.Designer(
+            id=data["id"],
+            name=data["user_name"],
+            belonging_shop_id=data.get("belonging_shop_id"),
+            memo=data.get("memo")
+        )
+        db.add(db_designer)
+        db.commit()
+        db.refresh(db_designer)
+        return {
+            "id": db_user.id,
+            "user_name": db_user.name,
+            "user_phone_number": db_user.phone_number,
+            "belonging_shop_id": db_designer.belonging_shop_id,
+            "is_active": db_designer.is_active,
+            "memo": db_designer.memo
+        }
 
+# TODO: 토큰 발급 로직 추가
+@app.post("/users/login")
+def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == request.id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="존재하지 않는 계정입니다.")
+    if user.user_type != request.user_type:
+        raise HTTPException(status_code=403, detail="해당 타입으로 가입된 아이디가 아닙니다.")
+    if not bcrypt.verify(request.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
     return {
-        "id": db_user.id,
-        "user_name": db_user.name,
-        "user_phone_number": db_user.phone_number,
-        "belonging_shop_id": db_designer.belonging_shop_id,
-        "is_active": db_designer.is_active,
-        "memo": db_designer.memo
+        "message": "로그인 성공",
+        "user_id": user.id,
+        "user_name": user.name,
+        "user_type": user.user_type
     }
 
+@app.patch("/users/{user_id}")
+def update_user_info(user_id: str, data: dict = Body(...), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.user_type == "shop":
+        # Shop: allow all fields except id
+        updatable_fields = ["name", "phone_number"]
+        for field in updatable_fields:
+            if field in data:
+                setattr(user, field, data[field])
+        # Shop info (shop_name, shop_number, shop_biz_number) in Shop table
+        shop = db.query(models.Shop).filter(models.Shop.id == user_id).first()
+        if shop:
+            shop_fields = ["shop_name", "shop_number", "shop_biz_number"]
+            for field in shop_fields:
+                if field in data:
+                    setattr(shop, field.replace("shop_", ""), data[field])
+        db.commit()
+        return {"message": "Shop user info updated successfully"}
+    elif user.user_type == "designer":
+        # Designer: only name, phone_number
+        allowed = False
+        if "name" in data:
+            user.name = data["name"]
+            # Also update Designer table name
+            designer = db.query(models.Designer).filter(models.Designer.id == user_id).first()
+            if designer:
+                designer.name = data["name"]
+            allowed = True
+        if "phone_number" in data:
+            user.phone_number = data["phone_number"]
+            allowed = True
+        if not allowed:
+            raise HTTPException(status_code=400, detail="Only name and phone_number can be updated for designer.")
+        db.commit()
+        return {"message": "Designer user info updated successfully"}
+    elif user.user_type == "customer":
+        # Customer: allow all fields except id
+        updatable_fields = ["name", "phone_number"]
+        updated = False
+        for field in updatable_fields:
+            if field in data:
+                setattr(user, field, data[field])
+                updated = True
+        if "password" in data:
+            user.hashed_password = bcrypt.hash(data["password"])
+            updated = True
+        if not updated:
+            raise HTTPException(status_code=400, detail="No updatable fields provided for customer.")
+        db.commit()
+        return {"message": "Customer user info updated successfully"}
+    else:
+        raise HTTPException(status_code=400, detail="User type not supported for update.")
+
+@app.get("/users/check-id")
+def check_user_id(id: str, db: Session = Depends(get_db)):
+    exists = db.query(models.User).filter(models.User.id == id).first() is not None
+    return {"exists": exists}
 
 @app.get("/customers/{customer_id}", response_model=schemas.CustomerRead)
 def get_customer(customer_id: str, db: Session = Depends(get_db)):
@@ -172,13 +225,6 @@ def get_designer(designer_id: str, db: Session = Depends(get_db)):
         "created_time": designer.created_time,
         "memo": designer.memo
     } 
-
-
-@app.get("/users/check-id")
-def check_user_id(id: str, db: Session = Depends(get_db)):
-    exists = db.query(models.User).filter(models.User.id == id).first() is not None
-    return {"exists": exists}
-
 
 # @app.post("/user-hair-profile/", response_model=schemas.UserHairProfileRead)
 # def create_user_hair_profile(profile: schemas.UserHairProfileCreate, db: Session = Depends(get_db)):
@@ -380,76 +426,3 @@ def delete_chart_item_user_option(
 #     db.refresh(db_option)
     
 #     return {"message": "Chart item user option updated successfully"}
-
-# TODO: 토큰 발급 로직 추가
-@app.post("/login")
-def login(request: schemas.LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == request.id).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="존재하지 않는 계정입니다.")
-    if user.user_type != request.user_type:
-        raise HTTPException(status_code=403, detail="해당 타입으로 가입된 아이디가 아닙니다.")
-    if not bcrypt.verify(request.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 올바르지 않습니다.")
-    return {
-        "message": "로그인 성공",
-        "user_id": user.id,
-        "user_name": user.name,
-        "user_type": user.user_type
-    }
-
-@app.patch("/users/{user_id}")
-def update_user_info(user_id: str, data: dict = Body(...), db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    if user.user_type == "shop":
-        # Shop: allow all fields except id
-        updatable_fields = ["name", "phone_number"]
-        for field in updatable_fields:
-            if field in data:
-                setattr(user, field, data[field])
-        # Shop info (shop_name, shop_number, shop_biz_number) in Shop table
-        shop = db.query(models.Shop).filter(models.Shop.id == user_id).first()
-        if shop:
-            shop_fields = ["shop_name", "shop_number", "shop_biz_number"]
-            for field in shop_fields:
-                if field in data:
-                    setattr(shop, field.replace("shop_", ""), data[field])
-        db.commit()
-        return {"message": "Shop user info updated successfully"}
-    elif user.user_type == "designer":
-        # Designer: only name, phone_number
-        allowed = False
-        if "name" in data:
-            user.name = data["name"]
-            # Also update Designer table name
-            designer = db.query(models.Designer).filter(models.Designer.id == user_id).first()
-            if designer:
-                designer.name = data["name"]
-            allowed = True
-        if "phone_number" in data:
-            user.phone_number = data["phone_number"]
-            allowed = True
-        if not allowed:
-            raise HTTPException(status_code=400, detail="Only name and phone_number can be updated for designer.")
-        db.commit()
-        return {"message": "Designer user info updated successfully"}
-    elif user.user_type == "customer":
-        # Customer: allow all fields except id
-        updatable_fields = ["name", "phone_number"]
-        updated = False
-        for field in updatable_fields:
-            if field in data:
-                setattr(user, field, data[field])
-                updated = True
-        if "password" in data:
-            user.hashed_password = bcrypt.hash(data["password"])
-            updated = True
-        if not updated:
-            raise HTTPException(status_code=400, detail="No updatable fields provided for customer.")
-        db.commit()
-        return {"message": "Customer user info updated successfully"}
-    else:
-        raise HTTPException(status_code=400, detail="User type not supported for update.")
-
