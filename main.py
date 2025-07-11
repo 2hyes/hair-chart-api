@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from app import models, schemas, database
 
-from fastapi import FastAPI, Depends, HTTPException, Body
+from fastapi import FastAPI, Depends, HTTPException, Body, Query
 from sqlalchemy.orm import Session
 from passlib.hash import bcrypt
 # from jose import jwt
@@ -439,3 +439,46 @@ def delete_chart_item_user_option(
 #     db.refresh(db_option)
     
 #     return {"message": "Chart item user option updated successfully"}
+
+@app.get("/shops/{shop_id}/designers")
+def list_designers_for_shop(
+    shop_id: str,
+    id: Optional[str] = Query(None),
+    name: Optional[str] = Query(None),
+    phone_number: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.Designer, models.User).join(models.User, models.Designer.id == models.User.id)
+    query = query.filter(models.Designer.belonging_shop_id == shop_id)
+    if id:
+        query = query.filter(models.Designer.id == id)
+    results = query.all()
+    designers = []
+    for designer, user in results:
+        designers.append({
+            "id": user.id,
+            "user_name": user.name,
+            "user_phone_number": user.phone_number,
+            "belonging_shop_id": designer.belonging_shop_id,
+            "is_active": designer.is_active,
+            "created_time": designer.created_time,
+            "memo": designer.memo
+        })
+    return designers
+
+@app.get("/shops/{shop_id}/designers/{designer_id}")
+def get_designer_for_shop(shop_id: str, designer_id: str, db: Session = Depends(get_db)):
+    result = db.query(models.Designer, models.User).join(models.User, models.Designer.id == models.User.id)
+    result = result.filter(models.Designer.belonging_shop_id == shop_id, models.Designer.id == designer_id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Designer not found or does not belong to this shop")
+    designer, user = result
+    return {
+        "id": user.id,
+        "user_name": user.name,
+        "user_phone_number": user.phone_number,
+        "belonging_shop_id": designer.belonging_shop_id,
+        "is_active": designer.is_active,
+        "created_time": designer.created_time,
+        "memo": designer.memo
+    }
