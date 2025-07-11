@@ -400,14 +400,10 @@ def is_chart_item_user_option_in_use(user_id: str, category_id: str, option_name
 
 @app.delete("/chart-item-user-options/")
 def delete_chart_item_user_option(
-    user_id: str,
-    category_id: str, 
-    option_name: str, 
+    id: str,  # unique sequence id
     db: Session = Depends(get_db)):
     db_option = db.query(models.ChartItemUserOption).filter(
-        models.ChartItemUserOption.user_id == user_id,
-        models.ChartItemUserOption.category_id == category_id,
-        models.ChartItemUserOption.option_name == option_name
+        models.ChartItemUserOption.id == id
     ).first()
     
     if not db_option:
