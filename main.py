@@ -49,23 +49,6 @@ def signin(data: dict = Body(...), db: Session = Depends(get_db)):
     db.add(db_user)
     db.flush()
 
-    # Add default options to chart_item_user_options for this user
-    default_options = db.query(models.ChartItemDefaultOption).all()
-    for opt in default_options:
-        option_id = opt.id
-        if option_id.startswith("default_"):
-            option_id = option_id[len("default_"):]
-        new_id = f"{db_user.id}_{option_id}"
-        db_option = models.ChartItemUserOption(
-            id=new_id,
-            user_id=db_user.id,
-            category_id=opt.category_id,
-            category_name=opt.category_name,
-            option_name=opt.option_name,
-            image_source=opt.image_source
-        )
-        db.add(db_option)
-
     if user_type == "customer":
         db.commit()
         db.refresh(db_user)
