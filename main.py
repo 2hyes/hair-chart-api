@@ -28,7 +28,7 @@ def get_current_user(
 # TODO: refactor whole main.py
 
 @app.post("/users/signup")
-def signin(data: dict = Body(...), db: Session = Depends(get_db)):
+def signup(data: dict = Body(...), db: Session = Depends(get_db)):
     user_type = data.get("user_type")
     if user_type not in ["customer", "shop", "designer"]:
         raise HTTPException(status_code=400, detail="Invalid user_type.")
@@ -151,15 +151,15 @@ def update_user_info(
             if current_user["user_type"] == "shop":
                 # 샵 매니저: 모든 필드 수정 허용
                 allowed = False
-                if "password" in data:
-                    user.hashed_password = bcrypt.hash(data["password"])
+                if "user_password" in data:
+                    user.hashed_password = bcrypt.hash(data["user_password"])
                     allowed = True
-                if "name" in data:
-                    user.name = data["name"]
-                    designer.name = data["name"]
+                if "user_name" in data:
+                    user.name = data["user_name"]
+                    designer.name = data["user_name"]
                     allowed = True
-                if "phone_number" in data:
-                    user.phone_number = data["phone_number"]
+                if "user_phone_number" in data:
+                    user.phone_number = data["user_phone_number"]
                     allowed = True
                 if "is_active" in data:
                     designer.is_active = data["is_active"]
@@ -172,15 +172,15 @@ def update_user_info(
             elif current_user["user_type"] == "designer" and current_user["user_id"] == user_id:
                 # 본인 디자이너: 이름/폰번호만 허용
                 for key in data:
-                    if key not in ["name", "phone_number"]:
+                    if key not in ["user_name", "user_phone_number"]:
                         raise HTTPException(status_code=400, detail="샵 소속 디자이너는 이름/전화번호만 수정할 수 있습니다.")
                 allowed = False
-                if "name" in data:
-                    user.name = data["name"]
-                    designer.name = data["name"]
+                if "user_name" in data:
+                    user.name = data["user_name"]
+                    designer.name = data["user_name"]
                     allowed = True
-                if "phone_number" in data:
-                    user.phone_number = data["phone_number"]
+                if "user_phone_number" in data:
+                    user.phone_number = data["user_phone_number"]
                     allowed = True
                 if not allowed:
                     raise HTTPException(status_code=400, detail="수정할 필드가 없습니다.")
@@ -191,15 +191,15 @@ def update_user_info(
             if current_user["user_type"] == "designer" and current_user["user_id"] == user_id:
                 # 본인: 모든 필드 수정 허용
                 allowed = False
-                if "password" in data:
-                    user.hashed_password = bcrypt.hash(data["password"])
+                if "user_password" in data:
+                    user.hashed_password = bcrypt.hash(data["user_password"])
                     allowed = True
-                if "name" in data:
-                    user.name = data["name"]
-                    designer.name = data["name"]
+                if "user_name" in data:
+                    user.name = data["user_name"]
+                    designer.name = data["user_name"]
                     allowed = True
-                if "phone_number" in data:
-                    user.phone_number = data["phone_number"]
+                if "user_phone_number" in data:
+                    user.phone_number = data["user_phone_number"]
                     allowed = True
                 if "is_active" in data:
                     designer.is_active = data["is_active"]
@@ -213,19 +213,19 @@ def update_user_info(
                 raise HTTPException(status_code=403, detail="권한이 없습니다.")
     elif user.user_type == "customer":
         # Customer: allow all fields except id
-        updatable_fields = ["name", "phone_number"]
+        updatable_fields = ["user_name", "user_phone_number"]
         updated = False
         for field in updatable_fields:
             if field in data:
                 setattr(user, field, data[field])
                 updated = True
-        if "password" in data:
-            user.hashed_password = bcrypt.hash(data["password"])
+        if "user_password" in data:
+            user.hashed_password = bcrypt.hash(data["user_password"])
             updated = True
         if not updated:
-            raise HTTPException(status_code=400, detail="No updatable fields provided for customer.")
+            raise HTTPException(status_code=400, detail="수정할 필드가 없습니다.")
     else:
-        raise HTTPException(status_code=400, detail="User type not supported for update.")
+        raise HTTPException(status_code=400, detail="User type이 지원되지 않습니다.")
     db.commit()
     return {"message": "User info updated successfully"}
 
