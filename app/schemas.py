@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
+
+from pydantic import BaseModel
+
 
 class CustomerCreate(BaseModel):
     id: str
@@ -47,6 +49,7 @@ class DesignerCreate(BaseModel):
     user_phone_number: str
     
     belonging_shop_id: Optional[str] = None
+    is_active: Optional[bool] = True
     memo:  Optional[str] = None
 
 class DesignerCreateResponse(BaseModel):
@@ -61,6 +64,14 @@ class DesignerCreateResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class DesignerUpdate(BaseModel):
+    user_name: Optional[str] = None
+    user_phone_number: Optional[str] = None
+    user_password: Optional[str] = None
+    is_active: Optional[bool] = None
+    memo: Optional[str] = None
+
 
 class DesignerRead(BaseModel):
     id: str

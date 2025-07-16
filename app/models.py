@@ -1,5 +1,12 @@
+from typing import Optional, Literal, List
+from datetime import datetime
+
 from sqlalchemy import Column, Integer, String, TIMESTAMP, text, ForeignKey, Boolean, UniqueConstraint
+from pydantic import BaseModel
+
+from app import schemas
 from .database import Base
+
 
 class User(Base):
     __tablename__ = "users" # user_type: customer, shop, designer
