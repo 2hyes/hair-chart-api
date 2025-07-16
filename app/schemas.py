@@ -159,3 +159,24 @@ class ChartItemOptionMerged(BaseModel):
 
     class Config:
         orm_mode = True
+
+class CustomerDesignerMappingRead(BaseModel):
+    id: int
+    customer_id: str
+    designer_id: str
+    status: str
+    requested_by: str
+    requested_time: datetime
+    responded_time: Optional[datetime] = None
+    memo: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class CustomerDesignerMappingCreate(BaseModel):
+    customer_id: str
+    memo: Optional[str] = None
+
+class CustomerDesignerMappingUpdate(BaseModel):
+    status: Literal["accepted", "rejected"]
+    memo: Optional[str] = None

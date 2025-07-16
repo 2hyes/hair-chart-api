@@ -79,3 +79,41 @@ class ChartItemUserOption(Base):
     __table_args__ = (
         UniqueConstraint('user_id', 'category_id', 'option_name', name='uq_user_category_option'),
     )
+
+class CustomerDesignerMapping(Base):
+    __tablename__ = "customer_designer_mapping"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    customer_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    designer_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(20), default="pending", nullable=False)
+    requested_by = Column(String(50), nullable=False)
+    requested_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
+    responded_time = Column(TIMESTAMP(timezone=False))
+    memo = Column(String(4000), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("customer_id", "designer_id", name="uq_customer_designer"),
+    )
+
+class CustomerDesignerMappingBase(BaseModel):
+    customer_id: str
+    designer_id: str
+    memo: Optional[str] = None
+
+class CustomerDesignerMappingCreate(BaseModel):
+    customer_id: str
+    memo: Optional[str] = None
+
+class CustomerDesignerMappingUpdate(BaseModel):
+    status: Literal["accepted", "rejected"]
+    memo: Optional[str] = None
+
+class CustomerDesignerMappingRead(CustomerDesignerMappingBase):
+    id: int
+    status: str
+    requested_by: str
+    requested_time: datetime
+    responded_time: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True
