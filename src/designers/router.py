@@ -1,8 +1,9 @@
 from typing import Optional, List
 
 from app import schemas, models, database
+from common.get_current_user import get_current_user
 
-from fastapi import APIRouter, Depends, HTTPException, Body, Query, Header
+from fastapi import APIRouter, Depends, HTTPException, Body, Query, Header, status
 from sqlalchemy.orm import Session
 from passlib.hash import bcrypt
 
@@ -229,3 +230,54 @@ def update_designer_for_shop(
         raise HTTPException(status_code=400, detail="수정할 필드가 없습니다.")
     db.commit()
     return {"message": "Designer info updated successfully"}
+
+
+@router.post("/{designer_id}/customers/request", response_model=schemas.CustomerDesignerMappingRead)
+def request_customer_registration(
+    designer_id: str,
+    req: schemas.CustomerDesignerMappingCreate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    디자이너가 고객에게 등록을 요청합니다.
+    - 디자이너 본인만 요청 가능
+    - 중복 요청 방지 (대기 중, 이미 등록됨, 거절됨 등)
+    """
+    # 1. 디자이너 본인 권한 체크 및 요청 일치 확인
+    # 로그인한 user_id가 path의 designer_id와 일치하는지 확인
+    if current_user["user_type"] != "designer" or current_user["user_id"] != designer_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="본인 디자이너만 고객 등록 요청이 가능합니다."
+        )
+
+
+    # 2. 중복 체크 (customer_id, designer_id 조합)
+    existing = db.query(models.CustomerDesignerMapping).filter_by(
+        customer_id=req.customer_id,
+        designer_id=designer_id
+    ).first()
+
+    if existing:
+        if existing.status == "pending":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="이미 등록 요청이 대기 중입니다.")
+        elif existing.status == "accepted":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="이미 등록된 고객입니다.")
+        elif existing.status == "rejected":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="이전에 거절된 요청이 있습니다. 관리자에게 문의하거나 새롭게 요청하세요.")
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"이미 요청이 존재합니다. (status={existing.status})")
+
+    # 3. 매핑 생성
+    mapping = models.CustomerDesignerMapping(
+        customer_id=req.customer_id,
+        designer_id=designer_id,
+        status="pending",
+        requested_by=designer_id,
+        memo=req.memo
+    )
+    db.add(mapping)
+    db.commit()
+    db.refresh(mapping)
+    return mapping
