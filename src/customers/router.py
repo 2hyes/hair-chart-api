@@ -18,6 +18,106 @@ def get_db():
     finally:
         db.close()
 
+
+@router.get("/me", response_model=schemas.CustomerRead)
+def get_my_customer_detail(
+    db: Session = Depends(get_db),
+    x_user_id: str = Header(...),
+    x_user_type: str = Header(...)
+):
+    if x_user_type != "customer":
+        raise HTTPException(status_code=403, detail="고객만 접근할 수 있습니다.")
+    user = db.query(models.User).filter(
+        models.User.id == x_user_id,
+        models.User.user_type == "customer"
+    ).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="고객 정보를 찾을 수 없습니다.")
+    return schemas.CustomerRead(
+        id=user.id,
+        user_name=user.name,
+        user_phone_number=user.phone_number
+    )
+
+
+@router.patch("/me")
+def update_my_customer_info(
+    body: schemas.CustomerMeUpdate = Body(...),
+    db: Session = Depends(get_db),
+    x_user_id: str = Header(...),
+    x_user_type: str = Header(...)
+):
+    if x_user_type != "customer":
+        raise HTTPException(status_code=403, detail="고객만 접근할 수 있습니다.")
+    user = db.query(models.User).filter(models.User.id == x_user_id, models.User.user_type == "customer").first()
+    if not user:
+        raise HTTPException(status_code=404, detail="고객 정보를 찾을 수 없습니다.")
+    updated = False
+    if body.user_name is not None:
+        user.name = body.user_name
+        updated = True
+    if body.user_phone_number is not None:
+        # 중복 체크
+        exists = db.query(models.User).filter(models.User.phone_number == body.userPhone, models.User.id != x_user_id).first()
+        if exists:
+            raise HTTPException(status_code=400, detail="이미 가입된 전화번호입니다.")
+        user.phone_number = body.user_phone_number
+        updated = True
+    if body.user_password is not None:
+        user.hashed_password = bcrypt.hash(body.user_password)
+        updated = True
+    if not updated:
+        raise HTTPException(status_code=400, detail="수정할 필드가 없습니다.")
+    db.commit()
+    return {
+        "id": user.id,
+        "user_name": user.name,
+        "user_phone_number": user.phone_number
+    }
+
+
+@router.get("/me/designers")
+def get_my_designers(
+    db: Session = Depends(get_db),
+    x_user_id: str = Header(...),
+    x_user_type: str = Header(...)
+):
+    if x_user_type != "customer":
+        raise HTTPException(status_code=403, detail="고객만 접근할 수 있습니다.")
+    # 매핑된 디자이너 목록 (accepted, pending)
+    mappings = db.query(models.CustomerDesignerMapping).filter(
+        models.CustomerDesignerMapping.customer_id == x_user_id,
+        models.CustomerDesignerMapping.status.in_(["accepted", "pending"])
+    ).all()
+    if not mappings:
+        return []
+    # 디자이너 id 목록
+    designer_ids = [mapping.designer_id for mapping in mappings]
+    designers = db.query(models.Designer).filter(models.Designer.id.in_(designer_ids)).all()
+    users = db.query(models.User).filter(models.User.id.in_(designer_ids)).all()
+    # shop_name 매핑
+    shop_ids = [designer.belonging_shop_id for designer in designers if designer.belonging_shop_id]
+    shops = db.query(models.Shop).filter(models.Shop.id.in_(shop_ids)).all()
+    shop_map = {shop.id: shop.name for shop in shops}
+    user_map = {user.id: user.name for user in users}
+    designer_map = {designer.id: designer for designer in designers}
+    result = []
+    for mapping in mappings:
+        designer = designer_map.get(mapping.designer_id)
+        user_name = user_map.get(mapping.designer_id)
+        shop_name = shop_map.get(designer.belonging_shop_id) if designer else None
+        result.append({
+            "designer_id": mapping.designer_id,
+            "user_name": user_name,
+            "shop_name": shop_name,
+            "request_at": mapping.requested_time,
+            "response_at": mapping.responded_time,
+            "status": mapping.status
+        })
+    return result
+
+
+
 @router.get("/", response_model=List[schemas.CustomerRead])
 def get_mapped_customers(
     db: Session = Depends(get_db),
@@ -129,5 +229,9 @@ def respond_designer_request(
     mapping.status = body.response
     db.commit()
     db.refresh(mapping)
-    return {"message": f"디자이너 등록 요청을 {body.response} 처리했습니다.", "customer_id": customer_id, "designer_id": designer_id, "status": mapping.status}
-
+    return {
+        "message": f"디자이너 등록 요청을 {body.response} 처리했습니다.", 
+        "customer_id": customer_id,
+        "designer_id": designer_id, 
+        "status": mapping.status
+    }

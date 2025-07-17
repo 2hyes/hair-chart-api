@@ -159,3 +159,8 @@ class CustomerDesignerMappingUpdate(BaseModel):
 
 class DesignerRequestResponse(BaseModel):
     response: str  # 'accepted' or 'rejected'
+
+class CustomerMeUpdate(BaseModel):
+    user_name: Optional[str] = None
+    user_phone_number: Optional[str] = None
+    user_password: Optional[str] = None
