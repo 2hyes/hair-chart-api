@@ -53,14 +53,55 @@ def get_mapped_customers(
     ) for c in customers]
 
 
-class DesignerRequestResponse(BaseModel):
-    response: str  # 'accepted' or 'rejected'
+@router.get("/{customer_id}", response_model=schemas.CustomerRead)
+def get_customer_detail(
+    customer_id: str,
+    db: Session = Depends(get_db),
+    x_user_id: str = Header(...),
+    x_user_type: str = Header(...)
+):
+    # 1. 고객 존재 확인
+    customer = db.query(models.User).filter(
+        models.User.id == customer_id,
+        models.User.user_type == "customer"
+    ).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="고객을 찾을 수 없습니다.")
+    # 2. 권한 체크
+    if x_user_type == "shop":
+        # 샵 소속 디자이너 중 한 명이라도 이 고객과 매핑되어 있으면 허용
+        designers = db.query(models.Designer.id).filter(models.Designer.belonging_shop_id == x_user_id).all()
+        designer_ids = [d.id for d in designers]
+        exists = db.query(models.CustomerDesignerMapping).filter(
+            models.CustomerDesignerMapping.customer_id == customer_id,
+            models.CustomerDesignerMapping.designer_id.in_(designer_ids),
+            models.CustomerDesignerMapping.status == "accepted"
+        ).first()
+        if not exists:
+            raise HTTPException(status_code=403, detail="해당 고객에 접근할 권한이 없습니다.")
+    elif x_user_type == "designer":
+        # 본인에게 등록된 고객만 허용
+        exists = db.query(models.CustomerDesignerMapping).filter(
+            models.CustomerDesignerMapping.customer_id == customer_id,
+            models.CustomerDesignerMapping.designer_id == x_user_id,
+            models.CustomerDesignerMapping.status == "accepted"
+        ).first()
+        if not exists:
+            raise HTTPException(status_code=403, detail="해당 고객에 접근할 권한이 없습니다.")
+    else:
+        raise HTTPException(status_code=403, detail="권한이 없습니다.")
+    return schemas.CustomerRead(
+        id=customer.id,
+        user_name=customer.name,
+        user_phone_number=customer.phone_number
+    )
+
 
 @router.patch("/{customer_id}/designers/{designer_id}/response")
 def respond_designer_request(
     customer_id: str,
     designer_id: str,
-    body: DesignerRequestResponse = Body(...),
+    body: schemas.DesignerRequestResponse = Body(...),
     db: Session = Depends(get_db),
     x_user_id: str = Header(...),
     x_user_type: str = Header(...)

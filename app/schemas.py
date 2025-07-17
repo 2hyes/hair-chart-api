@@ -94,30 +94,6 @@ class LoginRequest(BaseModel):
     password: str
     user_type: str
 
-# class UserHairProfileCreate(BaseModel):
-#     user_id: str
-#     face_shape: Optional[str]
-#     head_shape: Optional[str]
-#     personal_color: Optional[str]
-#     hair_condition: Optional[str]
-#     scalp_condition: Optional[str]
-#     memo: Optional[str] = Field(default="")
-
-# class UserHairProfileRead(BaseModel):
-#     seq: int
-#     user_id: str
-#     face_shape: Optional[str]
-#     head_shape: Optional[str]
-#     personal_color: Optional[str]
-#     hair_condition: Optional[str]
-#     scalp_condition: Optional[str]
-#     created_time: datetime
-#     updated_time: datetime
-#     memo: Optional[str] = Field(default="")
-
-#     class Config:
-#         orm_mode = True
-
 class ChartItemUserOption(BaseModel):
     user_id: str
     category_id: str
@@ -180,3 +156,6 @@ class CustomerDesignerMappingCreate(BaseModel):
 class CustomerDesignerMappingUpdate(BaseModel):
     status: Literal["accepted", "rejected"]
     memo: Optional[str] = None
+
+class DesignerRequestResponse(BaseModel):
+    response: str  # 'accepted' or 'rejected'
