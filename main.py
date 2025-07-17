@@ -5,6 +5,7 @@ from src.auth.router import router as auth_router
 from src.user.router import router as user_router
 from src.chart_option.router import router as chart_option_router
 from src.designers.router import router as designers_router
+from src.customer.router import router as customers_router
 
 from fastapi import FastAPI, Depends, Header
 from sqlalchemy.orm import Session
@@ -15,6 +16,7 @@ app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(chart_option_router)
 app.include_router(designers_router)
+app.include_router(customers_router)
 
 models.Base.metadata.create_all(bind=database.engine)
 
