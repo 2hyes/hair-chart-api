@@ -1,5 +1,12 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, text, ForeignKey, Boolean
+from typing import Optional, Literal, List
+from datetime import datetime
+
+from sqlalchemy import Column, Integer, String, TIMESTAMP, text, ForeignKey, Boolean, UniqueConstraint
+from pydantic import BaseModel
+
+from app import schemas
 from .database import Base
+
 
 class User(Base):
     __tablename__ = "users" # user_type: customer, shop, designer
@@ -8,7 +15,7 @@ class User(Base):
     id = Column(String(50), unique=True, nullable=False)
     user_type = Column(String(10), nullable=False)
     name = Column(String(100), nullable=False)
-    password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=False)
     phone_number = Column(String(20), unique=True, nullable=True)
     created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
     updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
@@ -33,22 +40,80 @@ class Designer(Base):
     id = Column(String(50), ForeignKey("users.id"), unique=True, nullable=False)
     name = Column(String(100), nullable=False)
     is_active = Column(Boolean, nullable=False, server_default=text("true"))
-    belonging_shop_id = Column(String(50), ForeignKey("shops.id"), unique=True, nullable=False)
+    belonging_shop_id = Column(String(50), ForeignKey("shops.id"), nullable=False)
     created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
     updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
     memo = Column(String(4000), nullable=True)
 
 
-# class UserHairProfile(Base):
-#     __tablename__ = "user_hair_profile"
+class ChartItemDefaultOption(Base):
+    __tablename__ = "chart_item_default_options"
 
-#     seq = Column(Integer, primary_key=True, index=True)
-#     user_id = Column(String(50), ForeignKey("users.id"), nullable=False)
-#     face_shape = Column(String)
-#     head_shape = Column(String)
-#     personal_color = Column(String)
-#     hair_condition = Column(String)
-#     scalp_condition = Column(String)
-#     created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
-#     updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
-#     memo = Column(String)
+    id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(String(50), nullable=False)
+    category_name = Column(String(50), nullable=False)
+    option_name = Column(String(100), nullable=False)
+    image_source = Column(String(500), nullable=True)
+
+
+class UserCategorySequence(Base):
+    __tablename__ = "user_category_sequence"
+
+    user_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    category_id = Column(String(50), primary_key=True)
+    current_seq = Column(Integer, nullable=False, server_default=text("0"))
+
+
+class ChartItemUserOption(Base):
+    __tablename__ = "chart_item_user_options"
+
+    id = Column(String(100), primary_key=True, index=True, nullable=True, autoincrement=False)
+    user_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    category_id = Column(String(50), nullable=False)
+    category_name = Column(String(50), nullable=False)
+    option_name = Column(String(100), nullable=False)
+    image_source = Column(String(500), nullable=True)
+    created_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
+    updated_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
+    
+    __table_args__ = (
+        UniqueConstraint('user_id', 'category_id', 'option_name', name='uq_user_category_option'),
+    )
+
+class CustomerDesignerMapping(Base):
+    __tablename__ = "customer_designer_mapping"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    customer_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    designer_id = Column(String(50), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(20), default="pending", nullable=False)
+    requested_by = Column(String(50), nullable=False)
+    requested_time = Column(TIMESTAMP(timezone=False), server_default=text("CURRENT_TIMESTAMP(0)"), nullable=False)
+    responded_time = Column(TIMESTAMP(timezone=False))
+    memo = Column(String(4000), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("customer_id", "designer_id", name="uq_customer_designer"),
+    )
+
+class CustomerDesignerMappingBase(BaseModel):
+    customer_id: str
+    designer_id: str
+    memo: Optional[str] = None
+
+class CustomerDesignerMappingCreate(BaseModel):
+    customer_id: str
+    memo: Optional[str] = None
+
+class CustomerDesignerMappingUpdate(BaseModel):
+    status: Literal["accepted", "rejected"]
+    memo: Optional[str] = None
+
+class CustomerDesignerMappingRead(CustomerDesignerMappingBase):
+    id: int
+    status: str
+    requested_by: str
+    requested_time: datetime
+    responded_time: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True

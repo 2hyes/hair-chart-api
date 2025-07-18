@@ -1,17 +1,19 @@
-from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
+
+from pydantic import BaseModel
+
 
 class CustomerCreate(BaseModel):
     id: str
-    name: str
-    password: str
-    phone_number: str
+    user_name: str
+    user_password: str
+    user_phone_number: str
 
 class CustomerRead(BaseModel):
     id: str
-    name: str
-    phone_number: str
+    user_name: str
+    user_phone_number: str
 
     class Config:
         orm_mode = True
@@ -46,9 +48,9 @@ class DesignerCreate(BaseModel):
     user_password: str
     user_phone_number: str
     
-    belonging_shop_id: str
-    is_active: bool = True
-    memo: str = ""
+    belonging_shop_id: Optional[str] = None
+    is_active: Optional[bool] = True
+    memo:  Optional[str] = None
 
 class DesignerCreateResponse(BaseModel):
     id: str
@@ -56,12 +58,20 @@ class DesignerCreateResponse(BaseModel):
     user_phone_number: str
 
     # designer info
-    belonging_shop_id: str
+    belonging_shop_id: Optional[str] = None
     is_active: bool
-    memo: str
+    memo:  Optional[str] = None
 
     class Config:
         orm_mode = True
+
+class DesignerUpdate(BaseModel):
+    user_name: Optional[str] = None
+    user_phone_number: Optional[str] = None
+    user_password: Optional[str] = None
+    is_active: Optional[bool] = None
+    memo: Optional[str] = None
+
 
 class DesignerRead(BaseModel):
     id: str
@@ -79,27 +89,78 @@ class DesignerRead(BaseModel):
     class Config:
         orm_mode = True
 
+class LoginRequest(BaseModel):
+    id: str
+    password: str
+    user_type: str
 
-# class UserHairProfileCreate(BaseModel):
-#     user_id: str
-#     face_shape: Optional[str]
-#     head_shape: Optional[str]
-#     personal_color: Optional[str]
-#     hair_condition: Optional[str]
-#     scalp_condition: Optional[str]
-#     memo: Optional[str] = Field(default="")
+class ChartItemUserOption(BaseModel):
+    user_id: str
+    category_id: str
+    category_name: str
+    option_name: str
+    image_source: Optional[str] = None
 
-# class UserHairProfileRead(BaseModel):
-#     seq: int
-#     user_id: str
-#     face_shape: Optional[str]
-#     head_shape: Optional[str]
-#     personal_color: Optional[str]
-#     hair_condition: Optional[str]
-#     scalp_condition: Optional[str]
-#     created_time: datetime
-#     updated_time: datetime
-#     memo: Optional[str] = Field(default="")
+    class Config:
+        orm_mode = True
 
-#     class Config:
-#         orm_mode = True
+class ChartItemUserOptionRead(BaseModel):
+    id: str
+    user_id: str
+    category_id: str
+    category_name: str
+    option_name: str
+    image_source: Optional[str] = None
+    created_time: datetime
+    updated_time: datetime
+
+    class Config:
+        orm_mode = True
+
+class ChartItemDefaultOption(BaseModel):
+    category_id: str
+    category_name: str
+    option_name: str
+    image_source: Optional[str]
+
+    class Config:
+        orm_mode = True
+
+class ChartItemOptionMerged(BaseModel):
+    category_id: str
+    category_name: str
+    option_name: str
+    image_source: Optional[str]
+    is_user_option: bool = False  # True for user options, False for default options
+
+    class Config:
+        orm_mode = True
+
+class CustomerDesignerMappingRead(BaseModel):
+    id: int
+    customer_id: str
+    designer_id: str
+    status: str
+    requested_by: str
+    requested_time: datetime
+    responded_time: Optional[datetime] = None
+    memo: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class CustomerDesignerMappingCreate(BaseModel):
+    customer_id: str
+    memo: Optional[str] = None
+
+class CustomerDesignerMappingUpdate(BaseModel):
+    status: Literal["accepted", "rejected"]
+    memo: Optional[str] = None
+
+class DesignerRequestResponse(BaseModel):
+    response: str  # 'accepted' or 'rejected'
+
+class CustomerMeUpdate(BaseModel):
+    user_name: Optional[str] = None
+    user_phone_number: Optional[str] = None
+    user_password: Optional[str] = None
