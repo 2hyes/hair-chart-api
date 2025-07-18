@@ -216,30 +216,30 @@ def check_user_id(id: str, db: Session = Depends(get_db)):
     exists = db.query(models.User).filter(models.User.id == id).first() is not None
     return {"exists": exists}
 
-@router.get("/customers/{user_id}")
-def get_customer(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id, models.User.user_type == "customer").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Customer not found")
-    return {
-        "id": user.id,
-        "user_name": user.name,
-        "user_phone_number": user.phone_number
-    }
+# @router.get("/customers/{user_id}")
+# def get_customer(user_id: str, db: Session = Depends(get_db)):
+#     user = db.query(models.User).filter(models.User.id == user_id, models.User.user_type == "customer").first()
+#     if not user:
+#         raise HTTPException(status_code=404, detail="Customer not found")
+#     return {
+#         "id": user.id,
+#         "user_name": user.name,
+#         "user_phone_number": user.phone_number
+#     }
 
-@router.get("/shops/{user_id}")
-def get_shop(user_id: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.id == user_id, models.User.user_type == "shop").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Shop user not found")
-    shop = db.query(models.Shop).filter(models.Shop.id == user_id).first()
-    if not shop:
-        raise HTTPException(status_code=404, detail="Shop not found")
-    return {
-        "id": user.id,
-        "user_name": user.name,
-        "user_phone_number": user.phone_number,
-        "shop_name": shop.name,
-        "shop_number": shop.number,
-        "shop_biz_number": shop.biz_number
-    }
+# @router.get("/shops/{user_id}")
+# def get_shop(user_id: str, db: Session = Depends(get_db)):
+#     user = db.query(models.User).filter(models.User.id == user_id, models.User.user_type == "shop").first()
+#     if not user:
+#         raise HTTPException(status_code=404, detail="Shop user not found")
+#     shop = db.query(models.Shop).filter(models.Shop.id == user_id).first()
+#     if not shop:
+#         raise HTTPException(status_code=404, detail="Shop not found")
+#     return {
+#         "id": user.id,
+#         "user_name": user.name,
+#         "user_phone_number": user.phone_number,
+#         "shop_name": shop.name,
+#         "shop_number": shop.number,
+#         "shop_biz_number": shop.biz_number
+#     }
